@@ -1,75 +1,172 @@
-# TempMailAPI
+# 📬 TempMailAPI
 
-A tiny temporary email API built entirely on **Cloudflare Workers + KV + Email Routing**.
+> A tiny temporary email service built on **Cloudflare Workers**.
 
-No frontend. No database. No framework. No external dependencies.
+TempMailAPI is a lightweight disposable email system designed to do one thing well:
 
-The goal is simple: create disposable inboxes, receive emails, read them through an API, and delete them when no longer needed.
+**Create a temporary inbox, receive emails, read them, and throw them away.**
 
-## Features
+No heavy backend.
+No database server.
+No framework stack.
+Just **one Cloudflare Worker + KV + Email Routing**.
 
-* Create temporary email addresses
-* Check username availability
-* Receive incoming emails through Cloudflare Email Routing
-* Read inbox messages through REST API
-* Delete inboxes
-* Automatic inbox expiration with KV TTL
-* Simple Bearer Token authentication
-* No external runtime dependencies
-* Designed to run on the Cloudflare free tier within its limits
+---
 
-## Architecture
+## ✨ Features
+
+* 📮 Create temporary email addresses
+* 🔎 Check username availability
+* 📥 Receive incoming emails
+* 📨 Read inbox messages through REST API
+* 🗑️ Delete inboxes and their messages
+* ⏳ Automatic inbox expiration
+* 🔐 Bearer-token protected inbox access
+* 🛡️ Password-protected web panel
+* 🔑 Server-side sessions with secure cookies
+* 🚦 Login brute-force protection
+* 🌙 Dark glassmorphism web interface
+* 🟢 Neon-green UI
+* 📱 Responsive dashboard
+* 🧩 Single-file architecture
+* 🚫 No external runtime dependencies
+
+---
+
+## 🧠 How It Works
 
 ```text
-Internet
-   │
-   ▼
-Cloudflare Email Routing
-   │
-   ▼
-Cloudflare Worker
-   │
-   ├── REST API
-   ├── Email Handler
-   │
-   ▼
-Cloudflare KV
+              📩 Incoming Email
+                     │
+                     ▼
+          Cloudflare Email Routing
+                     │
+                     ▼
+              ┌───────────────┐
+              │    Worker     │
+              │               │
+              │ REST API      │
+              │ Web Panel     │
+              │ Auth          │
+              │ Email Handler │
+              └───────┬───────┘
+                      │
+                      ▼
+                 Cloudflare KV
 ```
 
-## Requirements
+Everything lives inside one Worker.
 
-* A Cloudflare account
-* A domain managed by Cloudflare
-* Cloudflare Email Routing
-* A Cloudflare KV namespace
+```text
+worker.js
+```
 
-## Configuration
+That's it. :)
 
-The Worker expects:
+---
+
+## 🛠️ Requirements
+
+You need:
+
+* ☁️ A Cloudflare account
+* 🌐 A domain managed by Cloudflare
+* 📦 A Cloudflare KV namespace
+* ✉️ Cloudflare Email Routing
+
+---
+
+## ⚙️ Configuration
 
 ### KV Binding
+
+Create a KV namespace and bind it to the Worker as:
 
 ```text
 KV
 ```
 
-### Environment Variable
+### Environment Variables
+
+Set:
 
 ```text
 DOMAIN
+PANEL_PASSWORD
 ```
 
 Example:
 
 ```text
-myinbox0320.kdns.fr
+DOMAIN=myemail.example
+PANEL_PASSWORD=your-secret-password
 ```
 
-The project does not hard-code the domain.
+`PANEL_PASSWORD` should be configured as a **Cloudflare Secret**, not hard-coded into the Worker.
 
-## API
+---
 
-### Health Check
+## 🚀 Deploy
+
+Upload `worker.js` to a Cloudflare Worker and configure the KV binding and environment variables above.
+
+Then configure Cloudflare Email Routing so incoming messages for your domain are sent to the Worker.
+
+For example:
+
+```text
+test123@myemail.example
+        │
+        ▼
+Cloudflare Email Routing
+        │
+        ▼
+TempMailAPI Worker
+```
+
+---
+
+# 🌐 Web Panel
+
+The Worker includes a built-in web interface.
+
+Open:
+
+```text
+https://YOUR-WORKER.workers.dev/
+```
+
+You will see the login page.
+
+After authentication:
+
+```text
+https://YOUR-WORKER.workers.dev/app
+```
+
+The dashboard provides:
+
+* 📮 Create inbox
+* 🔎 Username availability check
+* 📥 Inbox viewer
+* 🔄 Manual refresh
+* ♻️ Auto refresh
+* ⏳ Expiration countdown
+* 🔍 Message search
+* 📄 Plain-text message viewer
+* 🌐 Sandboxed HTML message viewer
+* 📋 Copy email/token
+* 🗑️ Delete inbox
+* 🚪 Logout
+* 💚 Worker health status
+
+---
+
+# 🔌 API
+
+The API is intentionally small.
+
+## ❤️ Health
 
 ```http
 GET /health
@@ -93,13 +190,13 @@ Response:
 
 ---
 
-### Create Email
+## 📮 Create Inbox
 
 ```http
 POST /email
 ```
 
-Create an inbox with a specific name:
+### Custom username
 
 ```bash
 curl -X POST \
@@ -108,7 +205,7 @@ curl -X POST \
   -d '{"name":"test123"}'
 ```
 
-Or let the API generate a random name:
+### Random username
 
 ```bash
 curl -X POST \
@@ -122,20 +219,20 @@ Example response:
 ```json
 {
   "success": true,
-  "email": "test123@example.com",
+  "email": "test123@myemail.example",
   "token": "YOUR_SECRET_TOKEN",
-  "expires_at": "2026-09-10T12:00:00.000Z"
+  "expires_at": "2026-09-11T15:00:00.000Z"
 }
 ```
 
-Save the returned token. It is required to access and delete the inbox.
+Save the token. It is required for accessing and deleting the inbox.
 
 ---
 
-### Check Username Availability
+## 🔎 Check Username
 
 ```http
-GET /email/check?name=NAME
+GET /email/check?name=test123
 ```
 
 Example:
@@ -165,7 +262,7 @@ Taken:
 
 ---
 
-### Read Inbox
+## 📥 Read Inbox
 
 ```http
 GET /email/{name}
@@ -190,24 +287,25 @@ Example response:
 ```json
 {
   "success": true,
-  "email": "test123@example.com",
+  "email": "test123@myemail.example",
   "messages": [
     {
       "id": "MESSAGE_ID",
       "from": "sender@example.com",
-      "to": "test123@example.com",
-      "subject": "Test",
-      "date": "2026-09-10T10:00:00.000Z",
-      "text": "Hello",
-      "html": "<p>Hello</p>"
+      "to": "test123@myemail.example",
+      "subject": "Verification Code",
+      "date": "2026-09-11T12:30:00.000Z",
+      "text": "Your verification code is 123456",
+      "html": "<p>Your verification code is <b>123456</b></p>"
     }
-  ]
+  ],
+  "expires_at": "2026-09-11T13:00:00.000Z"
 }
 ```
 
 ---
 
-### Delete Inbox
+## 🗑️ Delete Inbox
 
 ```http
 DELETE /email/{name}
@@ -238,74 +336,123 @@ Response:
 
 Deleting an inbox also removes its stored messages.
 
-## Email Receiving
+---
 
-Cloudflare Email Routing forwards incoming messages for the configured domain to the Worker's `email()` handler.
+# 🔐 Authentication
 
-For example:
+The web panel uses a separate authentication system from inbox tokens.
+
+### Panel
 
 ```text
-test123@example.com
-        │
-        ▼
-Cloudflare Email Routing
-        │
-        ▼
-TempMailAPI Worker
-        │
-        ▼
-Cloudflare KV
+PANEL_PASSWORD
+      ↓
+Server-side login
+      ↓
+KV session
+      ↓
+HttpOnly + Secure cookie
 ```
 
-Only inboxes that currently exist in KV can receive messages.
+Sessions automatically expire and can be invalidated through logout.
 
-Expired or deleted inboxes are rejected.
+Failed login attempts are rate-limited to reduce brute-force attempts.
 
-## Expiration
+### Inbox
 
-Temporary inboxes are automatically configured with a **1-hour lifetime** by default.
+Each temporary inbox receives its own random token:
 
-The expiration time is returned when the inbox is created.
-
-Inbox and message data use Cloudflare KV expiration so temporary data does not need a separate cleanup service.
-
-## Limits
-
-The current implementation intentionally keeps the service small and applies limits to protect the Worker and storage:
-
-* Maximum username length: 32 characters
-* Username length: 3–32 characters
-* Maximum messages per inbox: 50
-* Maximum stored message content size: 1 MB per field
-
-These values can be changed in `worker.js`.
-
-## Security
-
-Each inbox receives a random secret token.
+```text
+Authorization: Bearer YOUR_TOKEN
+```
 
 The token itself is not stored directly in KV; a SHA-256 hash is stored instead.
 
-The token is required for reading and deleting the inbox.
+---
 
-Do not publish or share inbox tokens.
+# ⏳ Inbox Lifetime
 
-## Deployment
+Temporary inboxes expire automatically.
 
-Deploy `worker.js` as a Cloudflare Worker and configure the required KV binding and `DOMAIN` environment variable.
+Default lifetime:
 
-Then configure Cloudflare Email Routing so the domain's incoming mail is sent to the Worker.
+```text
+1 hour
+```
 
-## Project Status
+The expiration time is returned when the inbox is created.
 
-**Early / experimental**
+Stored inbox and message records use KV expiration, so no separate cleanup service is required.
 
-The project is intentionally minimal and focuses on the core temporary-email functionality.
+---
 
-A web panel may be added later without changing the API design.
+# 🧱 Project Structure
 
-## License
+The project intentionally stays tiny:
 
-This project is licensed under the MIT License.
+```text
+TempMailAPI/
+└── worker.js
+```
+
+One file.
+
+One Worker.
+
+One KV namespace.
+
+---
+
+# 🛡️ Security Notes
+
+TempMailAPI is intentionally lightweight, but a few protections are built in:
+
+* 🔐 Random inbox tokens
+* 🔒 SHA-256 token storage
+* 🍪 HttpOnly / Secure / SameSite session cookies
+* 🚦 Login rate limiting
+* 🧼 Input validation
+* 🧱 Sandboxed HTML email rendering
+* 🚫 No secrets hard-coded into the Worker
+* ⏳ Automatic expiration
+
+The service is intended for temporary, disposable communication. Do not use it for sensitive or permanent information.
+
+---
+
+# 📊 Current Limits
+
+Default limits:
+
+```text
+Inbox lifetime       1 hour
+Username length      3–32 characters
+Messages / inbox     50
+Stored message size  1 MB per field
+```
+
+These values can be adjusted directly in `worker.js`.
+
+---
+
+# 🧪 Status
+
+> **Experimental / personal project**
+
+TempMailAPI is intentionally small and focused.
+
+The goal is not to build another giant email platform.
+
+It's just a tiny inbox that works when you need one.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
 
 See [`LICENSE`](LICENSE) for details.
+
+---
+
+### ☕ Built with curiosity, a stubborn love for simple systems, and probably too much coffee.
