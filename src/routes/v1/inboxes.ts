@@ -4,6 +4,7 @@ import {
   checkNameAvailable,
   createInbox,
   deleteInboxByIdService,
+  deleteInboxByName,
   extractBearer,
   getInboxById,
   getInboxByName,
