@@ -119,12 +119,13 @@ export async function parseMime(
     });
   }
 
-  const date =
-    email.date instanceof Date
-      ? email.date.toISOString()
-      : typeof email.date === "string"
-        ? email.date
-        : null;
+  let date: string | null = null;
+  const rawDate = email.date as unknown;
+  if (rawDate instanceof Date) {
+    date = rawDate.toISOString();
+  } else if (typeof rawDate === "string") {
+    date = rawDate;
+  }
 
   return {
     messageId: email.messageId ?? null,
