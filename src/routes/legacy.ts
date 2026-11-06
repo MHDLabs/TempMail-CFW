@@ -1,27 +1,69 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "../types/env";
+import {
+  checkNameAvailable,
+  createInbox,
+  deleteInboxByName,
+  extractBearer,
+  getInboxByName,
+} from "../services/inboxService";
 import { Errors } from "../utils/errors";
 
 /**
- * Legacy compatibility routes.
- * Full inbox logic lands in Phase 4; foundation only registers the surface.
+ * Legacy compatibility routes — preserve existing public API contract.
  */
 export const legacyRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-legacyRoutes.post("/email", async () => {
-  throw Errors.serviceUnavailable("Inbox engine not yet enabled in this build phase");
+legacyRoutes.post("/email", async (c) => {
+  const config = c.get("config");
+  let body: { name?: string } = {};
+  try {
+    body = (await c.req.json()) as { name?: string };
+  } catch {
+    body = {};
+  }
+  if (body && typeof body !== "object") body = {};
+
+  const result = await createInbox(c.env, config, {
+    name: typeof body.name === "string" ? body.name : undefined,
+  });
+
+  return c.json(
+    {
+      success: true,
+      email: result.email,
+      token: result.token,
+      expires_at: result.expires_at,
+    },
+    201,
+  );
 });
 
 legacyRoutes.get("/email/check", async (c) => {
+  const config = c.get("config");
   const name = c.req.query("name") ?? "";
-  // Availability requires DB; foundation returns structured not-ready until Phase 4
-  throw Errors.serviceUnavailable("Inbox engine not yet enabled in this build phase");
+  if (!name) throw Errors.invalidName();
+  const result = await checkNameAvailable(c.env, config, name);
+  return c.json({ available: result.available, name: result.name });
 });
 
-legacyRoutes.get("/email/:name", async () => {
-  throw Errors.serviceUnavailable("Inbox engine not yet enabled in this build phase");
+legacyRoutes.get("/email/:name", async (c) => {
+  const config = c.get("config");
+  const name = c.req.param("name");
+  const token = extractBearer(c.req.header("Authorization"));
+  const { inbox, messages } = await getInboxByName(c.env, config, name, token);
+  return c.json({
+    success: true,
+    email: inbox.email,
+    messages,
+    expires_at: inbox.expires_at,
+  });
 });
 
-legacyRoutes.delete("/email/:name", async () => {
-  throw Errors.serviceUnavailable("Inbox engine not yet enabled in this build phase");
+legacyRoutes.delete("/email/:name", async (c) => {
+  const config = c.get("config");
+  const name = c.req.param("name");
+  const token = extractBearer(c.req.header("Authorization"));
+  await deleteInboxByName(c.env, config, name, token);
+  return c.json({ success: true, deleted: true });
 });

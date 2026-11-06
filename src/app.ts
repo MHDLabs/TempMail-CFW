@@ -4,6 +4,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { healthRoutes } from "./routes/health";
 import { legacyRoutes } from "./routes/legacy";
+import { v1InboxRoutes } from "./routes/v1/inboxes";
 import type { AppVariables, Env } from "./types/env";
 
 export function createApp() {
@@ -16,6 +17,7 @@ export function createApp() {
 
   app.route("/", healthRoutes);
   app.route("/", legacyRoutes);
+  app.route("/api/v1", v1InboxRoutes);
 
   app.notFound((c) =>
     c.json(

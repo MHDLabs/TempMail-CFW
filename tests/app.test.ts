@@ -1,6 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app";
 import type { Env } from "../src/types/env";
+
+vi.mock("../src/repositories/inboxRepo", () => ({
+  ensureDomain: vi.fn(async () => ({
+    id: "dom-1",
+    name: "example.com",
+    created_at: new Date().toISOString(),
+  })),
+  findInboxByLocalPart: vi.fn(async () => null),
+  findInboxByAddress: vi.fn(async () => null),
+  findInboxById: vi.fn(async () => null),
+  insertInbox: vi.fn(async () => undefined),
+  deleteInboxById: vi.fn(async () => undefined),
+  listMessagesForInbox: vi.fn(async () => []),
+}));
 
 function mockEnv(overrides: Partial<Env> = {}): Env {
   return {
@@ -40,11 +54,54 @@ describe("createApp", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  it("legacy email returns service unavailable in foundation phase", async () => {
+  it("POST /email creates inbox (legacy shape)", async () => {
     const app = createApp();
-    const res = await app.request("/email", { method: "POST" }, mockEnv());
-    expect(res.status).toBe(503);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
+    const res = await app.request(
+      "/email",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "alice" }),
+      },
+      mockEnv(),
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as {
+      success: boolean;
+      email: string;
+      token: string;
+      expires_at: string;
+    };
+    expect(body.success).toBe(true);
+    expect(body.email).toBe("alice@example.com");
+    expect(body.token).toBeTruthy();
+    expect(body.expires_at).toBeTruthy();
+  });
+
+  it("GET /email/check works", async () => {
+    const app = createApp();
+    const res = await app.request("/email/check?name=bob", {}, mockEnv());
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { available: boolean; name: string };
+    expect(body.available).toBe(true);
+    expect(body.name).toBe("bob");
+  });
+
+  it("POST /api/v1/inboxes returns id", async () => {
+    const app = createApp();
+    const res = await app.request(
+      "/api/v1/inboxes",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      },
+      mockEnv(),
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { success: boolean; id: string; email: string; token: string };
+    expect(body.success).toBe(true);
+    expect(body.id).toBeTruthy();
+    expect(body.email).toContain("@example.com");
   });
 });
