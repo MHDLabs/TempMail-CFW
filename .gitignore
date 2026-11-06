@@ -26,3 +26,13 @@ node_modules/
 dist/
 build/
 .cache/
+.wrangler/
+.dev.vars
+coverage/
+*.tsbuildinfo
+worker-configuration.d.ts
+
+
+# Web panel
+web/node_modules/
+web/dist/
