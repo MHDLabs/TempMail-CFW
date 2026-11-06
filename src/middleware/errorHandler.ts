@@ -22,7 +22,7 @@ export const errorHandler: ErrorHandler<{
         },
         request_id: requestId,
       },
-      err.status as 400,
+      err.status as 400 | 401 | 403 | 404 | 409 | 413 | 429 | 500 | 503,
     );
   }
 
