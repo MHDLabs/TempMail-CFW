@@ -1,0 +1,34 @@
+{
+  "name": "tempmail-cfw",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lightweight temporary email platform on Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "cf-typegen": "wrangler types"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "postal-mime": "^2.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240925.0",
+    "@types/node": "^22.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^3.78.0"
+  }
+}
