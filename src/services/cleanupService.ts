@@ -29,7 +29,7 @@ export async function runCleanup(
 
   for (const inboxId of inboxIds) {
     try {
-      await deleteInboxData(env, inboxId);
+      await purgeInbox(env, inboxId);
       inboxesDeleted += 1;
     } catch (err) {
       log("error", "cleanup inbox failed", {
@@ -50,7 +50,8 @@ export async function runCleanup(
   return { inboxesDeleted, sessionsDeleted };
 }
 
-async function deleteInboxData(env: Env, inboxId: string): Promise<void> {
+/** Full inbox purge including R2 objects. Used by cleanup and explicit delete. */
+export async function purgeInbox(env: Env, inboxId: string): Promise<void> {
   const db = getDb(env);
   let r2: R2Bucket | null = null;
   try {
@@ -105,6 +106,12 @@ async function deleteInboxData(env: Env, inboxId: string): Promise<void> {
     }
   }
 
+  await db
+    .prepare(
+      `DELETE FROM attachments WHERE message_id IN (SELECT id FROM messages WHERE inbox_id = ?)`,
+    )
+    .bind(inboxId)
+    .run();
   await db.prepare(`DELETE FROM messages WHERE inbox_id = ?`).bind(inboxId).run();
   await db.prepare(`DELETE FROM inboxes WHERE id = ?`).bind(inboxId).run();
 }

@@ -1,7 +1,6 @@
 import type { AppConfig, Env } from "../types/env";
 import type { CreateInboxResult, InboxPublic, LegacyMessage } from "../types/inbox";
 import {
-  deleteInboxById,
   ensureDomain,
   findInboxByAddress,
   findInboxById,
@@ -11,6 +10,7 @@ import {
 } from "../repositories/inboxRepo";
 import { constantTimeCompare, generateRandomName, generateToken, hashToken } from "../security/tokens";
 import { Errors } from "../utils/errors";
+import { purgeInbox } from "./cleanupService";
 import { isValidLocalPart } from "../utils/validation";
 import { extractOtp } from "./otpExtractService";
 
@@ -77,7 +77,7 @@ export async function createInbox(
     }
     // Expired inbox with same name: delete then recreate
     if (existing && isExpired(existing.expires_at)) {
-      await deleteInboxById(env, existing.id);
+      await purgeInbox(env, existing.id);
     }
 
     const token = await generateToken(32);
@@ -224,7 +224,7 @@ export async function deleteInboxByName(
     throw Errors.inboxNotFound();
   }
   await verifyInboxAccess(env, row, bearerToken);
-  await deleteInboxById(env, row.id);
+  await purgeInbox(env, row.id);
 }
 
 export async function deleteInboxByIdService(
@@ -235,7 +235,7 @@ export async function deleteInboxByIdService(
   const row = await findInboxById(env, id);
   if (!row) throw Errors.inboxNotFound();
   await verifyInboxAccess(env, row, bearerToken);
-  await deleteInboxById(env, id);
+  await purgeInbox(env, id);
 }
 
 export function extractBearer(authHeader: string | undefined): string | null {

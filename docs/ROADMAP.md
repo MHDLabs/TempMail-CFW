@@ -15,8 +15,8 @@ One phase → one report → one explicit approval (`تأیید مرحله N`).
 | 5 | Email engine, MIME & attachments | **Done** |
 | 6 | Authentication, admin backend & security | **Done** |
 | 7 | Complete web panel & Liquid Glass | **Done** |
-| 8 | Advanced capabilities | **In progress / this phase** |
-| 9 | Full QA, security audit & polish | Tests, reviews, fixes. |
+| 8 | Advanced capabilities | **Done** |
+| 9 | Full QA, security audit & polish | **In progress / this phase** |
 | 10 | Documentation, release prep & draft PR | Final docs, changelog, draft PR (no merge / no deploy). |
 
 ## Phase notes

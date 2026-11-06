@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { configMiddleware } from "./middleware/config";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestIdMiddleware } from "./middleware/requestId";
+import { securityHeadersMiddleware } from "./middleware/securityHeaders";
 import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
 import { legacyRoutes } from "./routes/legacy";
@@ -14,6 +15,7 @@ export function createApp() {
   const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
   app.use("*", requestIdMiddleware);
+  app.use("*", securityHeadersMiddleware);
   app.use("*", configMiddleware);
 
   app.onError(errorHandler);

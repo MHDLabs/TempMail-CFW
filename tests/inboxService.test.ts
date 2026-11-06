@@ -41,6 +41,13 @@ vi.mock("../src/repositories/inboxRepo", () => ({
   listMessagesForInbox: vi.fn(async () => []),
 }));
 
+vi.mock("../src/services/cleanupService", () => ({
+  purgeInbox: vi.fn(async (_env: Env, id: string) => {
+    store.inboxes.delete(id);
+  }),
+  runCleanup: vi.fn(async () => ({ inboxesDeleted: 0, sessionsDeleted: 0 })),
+}));
+
 import {
   checkNameAvailable,
   createInbox,
