@@ -1,4 +1,5 @@
 import { createApp } from "./app";
+import { ingestEmail } from "./services/emailIngestService";
 import type { Env } from "./types/env";
 import { log } from "./utils/log";
 
@@ -9,15 +10,22 @@ export default {
     return app.fetch(request, env, ctx);
   },
 
-  /**
-   * Email Routing entry. Full MIME pipeline is Phase 5.
-   * Foundation rejects cleanly so misconfigured routing is visible.
-   */
   async email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
-    log("info", "email handler invoked (scaffold)", {
-      to: message.to,
-      from: message.from,
-    });
-    message.setReject("TempMail-CFW email engine not enabled in this build phase");
+    try {
+      const result = await ingestEmail(message, env);
+      if (result.status === "rejected") {
+        log("info", "email rejected", { reason: result.reason ?? "unknown", to: message.to });
+      }
+    } catch (err) {
+      log("error", "email handler failure", {
+        error: err instanceof Error ? err.message : "unknown",
+        to: message.to,
+      });
+      try {
+        message.setReject("Temporary failure");
+      } catch {
+        /* already rejected or closed */
+      }
+    }
   },
 };

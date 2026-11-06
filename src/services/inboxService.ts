@@ -150,15 +150,27 @@ export async function getInboxByName(
   await verifyInboxAccess(env, row, bearerToken);
 
   const rows = await listMessagesForInbox(env, row.id);
-  const messages: LegacyMessage[] = rows.map((m) => ({
-    id: m.id,
-    from: m.from_addr ?? "",
-    to: m.to_addr ?? row.address,
-    subject: m.subject ?? "",
-    date: m.date ?? m.created_at,
-    text: m.text_body ?? "",
-    html: "", // HTML bodies in R2 — Phase 5
-  }));
+  const messages: LegacyMessage[] = [];
+  for (const m of rows) {
+    let html = "";
+    if (m.html_r2_key && env.R2) {
+      try {
+        const obj = await env.R2.get(m.html_r2_key);
+        if (obj) html = await obj.text();
+      } catch {
+        html = "";
+      }
+    }
+    messages.push({
+      id: m.id,
+      from: m.from_addr ?? "",
+      to: m.to_addr ?? row.address,
+      subject: m.subject ?? "",
+      date: m.date ?? m.created_at,
+      text: m.text_body ?? "",
+      html,
+    });
+  }
 
   return {
     inbox: {
