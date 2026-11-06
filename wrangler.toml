@@ -34,3 +34,10 @@ MAX_NAME_LENGTH = "32"
 
 [triggers]
 crons = ["*/15 * * * *"]
+
+
+# After `npm run web:build`, uncomment to serve the SPA from the Worker:
+# [assets]
+# directory = "./web/dist"
+# binding = "ASSETS"
+# not_found_handling = "single-page-application"

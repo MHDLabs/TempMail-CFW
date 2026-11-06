@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="light"] {
+  --surface: #f4f5f7;
+  --surface-2: #ffffff;
+  --ink: #1c1c1e;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --danger: #dc2626;
+  --border: rgba(15, 23, 42, 0.1);
+  --glass: rgba(255, 255, 255, 0.55);
+  --shadow-glass: 0 8px 32px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --bg-mesh: radial-gradient(1200px 600px at 10% -10%, #dbeafe 0%, transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, #e0e7ff 0%, transparent 50%),
+    #f4f5f7;
+}
+
+[data-theme="dark"] {
+  --surface: #0b0c10;
+  --surface-2: #14161c;
+  --ink: #f3f4f6;
+  --muted: #9ca3af;
+  --accent: #60a5fa;
+  --danger: #f87171;
+  --border: rgba(255, 255, 255, 0.1);
+  --glass: rgba(20, 22, 28, 0.55);
+  --shadow-glass: 0 12px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --bg-mesh: radial-gradient(1000px 500px at 15% -15%, #1e3a5f 0%, transparent 55%),
+    radial-gradient(800px 400px at 90% 10%, #312e81 0%, transparent 45%),
+    #0b0c10;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg-mesh);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .glass-panel {
+    @apply rounded-panel border border-border shadow-glass;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+    backdrop-filter: blur(18px) saturate(1.35);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-panel {
+      background: var(--surface-2);
+    }
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+      disabled:cursor-not-allowed disabled:opacity-50;
+    ring-offset-color: var(--surface);
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:opacity-90;
+  }
+
+  .btn-ghost {
+    @apply btn border border-border bg-transparent text-ink hover:bg-surface-2/60;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-border bg-surface-2/80 px-3 py-2 text-sm text-ink
+      placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-medium text-muted;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

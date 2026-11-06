@@ -13,7 +13,10 @@
     "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "web:dev": "npm run dev --prefix web",
+    "web:build": "npm run build --prefix web",
+    "web:typecheck": "npm run typecheck --prefix web"
   },
   "license": "MIT",
   "engines": {
