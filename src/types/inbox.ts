@@ -39,4 +39,5 @@ export interface LegacyMessage {
   date: string;
   text: string;
   html: string;
+  otp?: { code: string; kind: string; source: string } | null;
 }

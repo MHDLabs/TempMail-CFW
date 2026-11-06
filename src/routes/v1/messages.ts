@@ -5,6 +5,7 @@ import { findAttachment, findMessageById, listAttachmentsForMessage } from "../.
 import { extractBearer, verifyInboxAccess } from "../../services/inboxService";
 import { getR2 } from "../../storage/r2";
 import { Errors } from "../../utils/errors";
+import { extractOtp } from "../../services/otpExtractService";
 
 function isExpired(expiresAtIso: string): boolean {
   return Date.parse(expiresAtIso) <= Date.now();
@@ -38,6 +39,7 @@ v1MessageRoutes.get("/messages/:id", async (c) => {
     }
   }
   const attachments = await listAttachmentsForMessage(c.env, msg.id);
+  const otp = extractOtp({ subject: msg.subject, text: msg.text_body });
   return c.json({
     success: true,
     message: {
@@ -51,6 +53,7 @@ v1MessageRoutes.get("/messages/:id", async (c) => {
       text: msg.text_body ?? "",
       html,
       size_bytes: msg.size_bytes ?? 0,
+      otp: otp ? { code: otp.code, kind: otp.kind, source: otp.source } : null,
       attachments: attachments.map((a) => ({
         id: a.id,
         filename: a.filename ?? "attachment",

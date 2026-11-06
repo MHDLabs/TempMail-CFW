@@ -11,6 +11,8 @@ import {
 import { findInboxByAddress } from "../repositories/inboxRepo";
 import { getR2 } from "../storage/r2";
 import type { Env } from "../types/env";
+import { extractOtp } from "./otpExtractService";
+import { dispatchMessageWebhook } from "./webhookService";
 import { log } from "../utils/log";
 
 function isExpired(expiresAtIso: string): boolean {
@@ -172,10 +174,25 @@ export async function ingestEmail(
 
   await incrementMessageCount(env, inbox.id);
 
+  const otp = extractOtp({ subject: parsed.subject, text: parsed.text });
+
   log("info", "email stored", {
     inboxId: inbox.id,
     messageId,
     attachments: parsed.attachments.length,
+    hasOtp: Boolean(otp),
+  });
+
+  // Fire-and-forget webhook (errors swallowed inside)
+  await dispatchMessageWebhook(env, {
+    event: "message.received",
+    inbox: address,
+    message_id: messageId,
+    from: parsed.from || message.from || "",
+    subject: parsed.subject,
+    date: parsed.date,
+    otp: otp ? { code: otp.code, kind: otp.kind } : null,
+    received_at: now,
   });
 
   return { status: "stored" };

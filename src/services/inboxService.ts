@@ -12,6 +12,7 @@ import {
 import { constantTimeCompare, generateRandomName, generateToken, hashToken } from "../security/tokens";
 import { Errors } from "../utils/errors";
 import { isValidLocalPart } from "../utils/validation";
+import { extractOtp } from "./otpExtractService";
 
 function isExpired(expiresAtIso: string): boolean {
   return Date.parse(expiresAtIso) <= Date.now();
@@ -161,6 +162,7 @@ export async function getInboxByName(
         html = "";
       }
     }
+    const otp = extractOtp({ subject: m.subject, text: m.text_body });
     messages.push({
       id: m.id,
       from: m.from_addr ?? "",
@@ -169,6 +171,7 @@ export async function getInboxByName(
       date: m.date ?? m.created_at,
       text: m.text_body ?? "",
       html,
+      otp: otp ? { code: otp.code, kind: otp.kind, source: otp.source } : null,
     });
   }
 

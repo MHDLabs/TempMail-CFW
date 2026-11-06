@@ -7,6 +7,8 @@ export interface Env {
   EMAIL_DOMAINS: string;
   PANEL_PASSWORD?: string;
   SESSION_SECRET?: string;
+  WEBHOOK_URL?: string;
+  WEBHOOK_SECRET?: string;
   INBOX_TTL_SECONDS?: string;
   SESSION_TTL_SECONDS?: string;
   MAX_MESSAGES_PER_INBOX?: string;

@@ -31,6 +31,7 @@ MAX_NAME_LENGTH = "32"
 # Secrets (set via `wrangler secret put`):
 # PANEL_PASSWORD
 # SESSION_SECRET (optional)
+# WEBHOOK_URL / WEBHOOK_SECRET (optional)
 
 [triggers]
 crons = ["*/15 * * * *"]

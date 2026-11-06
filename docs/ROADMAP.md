@@ -7,19 +7,19 @@ One phase → one report → one explicit approval (`تأیید مرحله N`).
 
 | Phase | Name | Goal |
 |-------|------|------|
-| 0 | Repository acquisition & initial audit | Clone, inspect, branch. **Done.** |
-| 1 | Reference research & product definition | PRODUCT, AGENTS, DESIGN, REFERENCE-MAP, LICENSING, ROADMAP. **Current.** |
-| 2 | Architecture, database & API contracts | ARCHITECTURE, API, SECURITY, DATA-RETENTION, OpenAPI draft, D1 schema. |
-| 3 | Project foundation & modular scaffolding | TypeScript, Hono, bindings, migrations skeleton, tests, CI. |
-| 4 | Inbox engine & API compatibility | Create / read / delete / expire + legacy compatibility. |
-| 5 | Email engine, MIME & attachments | PostalMime, R2, size limits, safe HTML, cleanup. |
-| 6 | Authentication, admin backend & security | Sessions, CSRF, rate limits, boundaries. |
-| 7 | Complete web panel & Liquid Glass | Full UI, themes, responsive, accessible. |
-| 8 | Advanced capabilities | OTP extraction, webhooks, optional API keys / MCP (justified only). |
+| 0 | Repository acquisition & initial audit | **Done** |
+| 1 | Reference research & product definition | **Done** |
+| 2 | Architecture, database & API contracts | **Done** |
+| 3 | Project foundation & modular scaffolding | **Done** |
+| 4 | Inbox engine & API compatibility | **Done** |
+| 5 | Email engine, MIME & attachments | **Done** |
+| 6 | Authentication, admin backend & security | **Done** |
+| 7 | Complete web panel & Liquid Glass | **Done** |
+| 8 | Advanced capabilities | **In progress / this phase** |
 | 9 | Full QA, security audit & polish | Tests, reviews, fixes. |
 | 10 | Documentation, release prep & draft PR | Final docs, changelog, draft PR (no merge / no deploy). |
 
-## Phase 1 deliverables (this phase)
+## Phase notes
 
 - [x] PRODUCT.md
 - [x] AGENTS.md
