@@ -16,11 +16,24 @@ vi.mock("../src/repositories/inboxRepo", () => ({
   listMessagesForInbox: vi.fn(async () => []),
 }));
 
+function mockKv(): KVNamespace {
+  const map = new Map<string, string>();
+  return {
+    get: async (key: string) => map.get(key) ?? null,
+    put: async (key: string, value: string) => {
+      map.set(key, value);
+    },
+    delete: async (key: string) => {
+      map.delete(key);
+    },
+  } as unknown as KVNamespace;
+}
+
 function mockEnv(overrides: Partial<Env> = {}): Env {
   return {
     DB: {} as D1Database,
     R2: {} as R2Bucket,
-    KV: {} as KVNamespace,
+    KV: mockKv(),
     EMAIL_DOMAINS: "example.com",
     ...overrides,
   };
