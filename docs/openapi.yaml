@@ -1,0 +1,415 @@
+openapi: 3.1.0
+info:
+  title: TempMail-CFW API
+  version: 0.1.0
+  description: |
+    Temporary email platform API.
+    Legacy routes under /email and /health remain for compatibility.
+    Prefer /api/v1 for new integrations.
+  license:
+    name: MIT
+servers:
+  - url: /
+    description: Worker origin
+tags:
+  - name: health
+  - name: legacy
+  - name: inboxes
+  - name: messages
+  - name: attachments
+  - name: admin
+paths:
+  /health:
+    get:
+      tags: [health, legacy]
+      summary: Health check (legacy)
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /email:
+    post:
+      tags: [legacy]
+      summary: Create inbox (legacy)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 32
+                  pattern: "^[a-zA-Z0-9_-]+$"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegacyCreateInboxResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /email/check:
+    get:
+      tags: [legacy]
+      summary: Check username availability (legacy)
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available, name]
+                properties:
+                  available:
+                    type: boolean
+                  name:
+                    type: string
+
+  /email/{name}:
+    get:
+      tags: [legacy]
+      summary: Read inbox messages (legacy)
+      parameters:
+        - $ref: "#/components/parameters/InboxName"
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Inbox messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegacyInboxResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [legacy]
+      summary: Delete inbox (legacy)
+      parameters:
+        - $ref: "#/components/parameters/InboxName"
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/inboxes:
+    post:
+      tags: [inboxes]
+      summary: Create inbox
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                domain:
+                  type: string
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateInboxResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/inboxes/check:
+    get:
+      tags: [inboxes]
+      summary: Check name availability
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                  name:
+                    type: string
+                  domain:
+                    type: string
+
+  /api/v1/inboxes/{id}:
+    get:
+      tags: [inboxes]
+      summary: Get inbox metadata
+      parameters:
+        - $ref: "#/components/parameters/InboxId"
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Inbox metadata
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [inboxes]
+      summary: Delete inbox
+      parameters:
+        - $ref: "#/components/parameters/InboxId"
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/inboxes/{id}/messages:
+    get:
+      tags: [messages]
+      summary: List messages in inbox
+      parameters:
+        - $ref: "#/components/parameters/InboxId"
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Message page
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/messages/{id}:
+    get:
+      tags: [messages]
+      summary: Get message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Message detail
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/messages/{id}/attachments/{attachmentId}:
+    get:
+      tags: [attachments]
+      summary: Download attachment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerInbox: []
+      responses:
+        "200":
+          description: Binary attachment
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+components:
+  securitySchemes:
+    bearerInbox:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Inbox token returned only at creation time
+  parameters:
+    InboxName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-zA-Z0-9_-]+$"
+    InboxId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        ready:
+          type: boolean
+        service:
+          type: string
+          example: temp-mail-api
+    LegacyCreateInboxResponse:
+      type: object
+      required: [success, email, token, expires_at]
+      properties:
+        success:
+          type: boolean
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    LegacyInboxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        email:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegacyMessage"
+        expires_at:
+          type: string
+          format: date-time
+    LegacyMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        subject:
+          type: string
+        date:
+          type: string
+          format: date-time
+        text:
+          type: string
+        html:
+          type: string
+    CreateInboxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        id:
+          type: string
+        email:
+          type: string
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+        request_id:
+          type: string
