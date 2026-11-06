@@ -8,6 +8,7 @@ import {
   getInboxByName,
 } from "../services/inboxService";
 import { Errors } from "../utils/errors";
+import { assertRateLimit, clientIp } from "../services/rateLimitService";
 
 /**
  * Legacy compatibility routes — preserve existing public API contract.
@@ -15,6 +16,7 @@ import { Errors } from "../utils/errors";
 export const legacyRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 legacyRoutes.post("/email", async (c) => {
+  await assertRateLimit(c.env, "create_inbox", clientIp(c.req.raw));
   const config = c.get("config");
   let body: { name?: string } = {};
   try {

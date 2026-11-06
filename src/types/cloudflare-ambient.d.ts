@@ -69,3 +69,9 @@ interface ForwardableEmailMessage {
   setReject(reason: string): void;
   forward(rcptTo: string, headers?: Headers): Promise<void>;
 }
+
+interface ScheduledController {
+  readonly scheduledTime: number;
+  readonly cron: string;
+  noRetry(): void;
+}

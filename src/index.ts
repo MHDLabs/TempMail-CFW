@@ -1,4 +1,5 @@
 import { createApp } from "./app";
+import { runCleanup } from "./services/cleanupService";
 import { ingestEmail } from "./services/emailIngestService";
 import type { Env } from "./types/env";
 import { log } from "./utils/log";
@@ -27,5 +28,15 @@ export default {
         /* already rejected or closed */
       }
     }
+  },
+
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      runCleanup(env).catch((err) => {
+        log("error", "scheduled cleanup failed", {
+          error: err instanceof Error ? err.message : "unknown",
+        });
+      }),
+    );
   },
 };

@@ -32,6 +32,5 @@ MAX_NAME_LENGTH = "32"
 # PANEL_PASSWORD
 # SESSION_SECRET (optional)
 
-# Cron for cleanup (enable when ready)
-# [triggers]
-# crons = ["*/15 * * * *"]
+[triggers]
+crons = ["*/15 * * * *"]

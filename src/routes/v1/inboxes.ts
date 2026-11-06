@@ -10,10 +10,12 @@ import {
   getInboxByName,
 } from "../../services/inboxService";
 import { Errors } from "../../utils/errors";
+import { assertRateLimit, clientIp } from "../../services/rateLimitService";
 
 export const v1InboxRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 v1InboxRoutes.post("/inboxes", async (c) => {
+  await assertRateLimit(c.env, "create_inbox", clientIp(c.req.raw));
   const config = c.get("config");
   let body: { name?: string; domain?: string } = {};
   try {
