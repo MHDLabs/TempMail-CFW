@@ -84,3 +84,51 @@ v1AdminRoutes.post("/admin/cleanup", async (c) => {
   const stats = await runCleanup(c.env);
   return c.json({ success: true, ...stats });
 });
+
+v1AdminRoutes.post("/admin/ai/summary", async (c) => {
+  assertCsrf(c.req.raw);
+  const raw = parseSessionCookie(c.req.header("Cookie"));
+  await requireAdminSession(c.env, raw);
+  let body: { text?: string } = {};
+  try {
+    body = (await c.req.json()) as { text?: string };
+  } catch {
+    throw Errors.invalidRequest("JSON body required");
+  }
+  const text = typeof body.text === "string" ? body.text.trim() : "";
+  if (!text) throw Errors.invalidRequest("text required");
+  if (!c.env.AI) {
+    // Free-tier friendly fallback without Workers AI binding
+    const snippet = text.slice(0, 280).replace(/\s+/g, " ");
+    return c.json({
+      success: true,
+      summary: snippet + (text.length > 280 ? "…" : ""),
+      provider: "local-fallback",
+    });
+  }
+  try {
+    const result = (await c.env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+      messages: [
+        {
+          role: "system",
+          content:
+            "Summarize the email in 2 short sentences. If a verification/OTP code is present, state it clearly.",
+        },
+        { role: "user", content: text.slice(0, 4000) },
+      ],
+      max_tokens: 200,
+    })) as { response?: string };
+    return c.json({
+      success: true,
+      summary: result.response ?? "No summary",
+      provider: "workers-ai",
+    });
+  } catch {
+    const snippet = text.slice(0, 280).replace(/\s+/g, " ");
+    return c.json({
+      success: true,
+      summary: snippet + (text.length > 280 ? "…" : ""),
+      provider: "local-fallback",
+    });
+  }
+});

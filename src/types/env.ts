@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;
   ASSETS?: Fetcher;
+  AI?: Ai;
   EMAIL_DOMAINS: string;
   PANEL_PASSWORD?: string;
   WEBHOOK_URL?: string;

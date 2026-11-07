@@ -1,7 +1,6 @@
 export type ApiError = {
   success: false;
   error: { code: string; message: string };
-  request_id?: string;
 };
 
 async function parseJson<T>(res: Response): Promise<T> {
@@ -13,14 +12,25 @@ async function parseJson<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-const csrfHeaders = { "X-Requested-With": "TempMail-CFW" };
+const csrf = { "X-Requested-With": "TempMail-CFW" };
+
+export type Message = {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  text: string;
+  html: string;
+  otp?: { code: string; kind: string; source?: string } | null;
+};
 
 export async function login(password: string) {
   return parseJson<{ success: true; expires_at: string }>(
     await fetch("/api/v1/admin/login", {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...csrfHeaders },
+      headers: { "Content-Type": "application/json", ...csrf },
       body: JSON.stringify({ password }),
     }),
   );
@@ -31,7 +41,7 @@ export async function logout() {
     await fetch("/api/v1/admin/logout", {
       method: "POST",
       credentials: "include",
-      headers: csrfHeaders,
+      headers: csrf,
     }),
   );
 }
@@ -63,44 +73,38 @@ export async function createInbox(name?: string, domain?: string) {
     success: true;
     id: string;
     email: string;
-    token: string;
     expires_at: string;
   }>(
     await fetch("/api/v1/inboxes", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...csrf },
       body: JSON.stringify(body),
     }),
   );
 }
 
-export async function getInboxMessages(idOrName: string, token: string) {
+export async function getInboxMessages(idOrName: string) {
   return parseJson<{
     success: true;
-    inbox_id?: string;
+    inbox_id: string;
     email: string;
-    messages: Array<{
-      id: string;
-      from: string;
-      to: string;
-      subject: string;
-      date: string;
-      text: string;
-      html: string;
-    }>;
+    messages: Message[];
     expires_at: string;
+    next_cursor: string | null;
   }>(
     await fetch(`/api/v1/inboxes/${encodeURIComponent(idOrName)}/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     }),
   );
 }
 
-export async function deleteInbox(idOrName: string, token: string) {
+export async function deleteInbox(idOrName: string) {
   return parseJson<{ success: true; deleted: boolean }>(
     await fetch(`/api/v1/inboxes/${encodeURIComponent(idOrName)}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+      headers: csrf,
     }),
   );
 }
@@ -110,7 +114,18 @@ export async function runCleanup() {
     await fetch("/api/v1/admin/cleanup", {
       method: "POST",
       credentials: "include",
-      headers: csrfHeaders,
+      headers: csrf,
+    }),
+  );
+}
+
+export async function aiSummarize(text: string) {
+  return parseJson<{ success: true; summary: string }>(
+    await fetch("/api/v1/admin/ai/summary", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...csrf },
+      body: JSON.stringify({ text: text.slice(0, 4000) }),
     }),
   );
 }

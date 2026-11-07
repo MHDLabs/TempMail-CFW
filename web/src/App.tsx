@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Shell } from "./components/Shell";
 import { getSession } from "./lib/api";
-import { DashboardPage } from "./pages/DashboardPage";
-import { InboxPage } from "./pages/InboxPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MailApp } from "./pages/MailApp";
 import { SettingsPage } from "./pages/SettingsPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "yes" | "no">("loading");
-
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -24,7 +21,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, []);
-
   if (state === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted">
@@ -44,14 +40,26 @@ export function App() {
         path="/"
         element={
           <RequireAuth>
-            <Shell />
+            <MailApp />
           </RequireAuth>
         }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="inbox/:address" element={<InboxPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
+      />
+      <Route
+        path="/mail/:address"
+        element={
+          <RequireAuth>
+            <MailApp />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireAuth>
+            <SettingsPage />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

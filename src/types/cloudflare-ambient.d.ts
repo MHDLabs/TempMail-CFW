@@ -75,3 +75,7 @@ interface ScheduledController {
   readonly cron: string;
   noRetry(): void;
 }
+
+interface Ai {
+  run(model: string, inputs: Record<string, unknown>): Promise<unknown>;
+}

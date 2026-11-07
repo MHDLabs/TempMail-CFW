@@ -1,20 +1,24 @@
-name = "tempmail-cfw"
+name = "email"
 main = "src/index.ts"
 compatibility_date = "2026-09-10"
 compatibility_flags = ["nodejs_compat"]
+account_id = "1e7b75054f8da24cc11a0e011f0cf2d8"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "tempmail-cfw"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "01a5c9c9-c319-48c0-8a3e-5cf990bdd8ea"
 migrations_dir = "migrations"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "00000000000000000000000000000000"
+id = "96fe454a8bf8448cb5529fb30ac2c2f9"
+
+[ai]
+binding = "AI"
 
 [vars]
-EMAIL_DOMAINS = "example.com"
+EMAIL_DOMAINS = "myemailcfw.kdns.fr"
 INBOX_TTL_SECONDS = "3600"
 SESSION_TTL_SECONDS = "43200"
 MAX_MESSAGES_PER_INBOX = "50"
@@ -25,8 +29,7 @@ MAX_NAME_LENGTH = "32"
 [triggers]
 crons = ["*/15 * * * *"]
 
-# After `npm run web:build`:
-# [assets]
-# directory = "./web/dist"
-# binding = "ASSETS"
-# not_found_handling = "single-page-application"
+[assets]
+directory = "./web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
