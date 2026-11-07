@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { assertBindings, loadConfig } from "../src/config";
 import type { Env } from "../src/types/env";
+import { AppError } from "../src/utils/errors";
 
 function baseEnv(overrides: Partial<Env> = {}): Env {
   return {
     DB: {} as D1Database,
-    R2: {} as R2Bucket,
     KV: {} as KVNamespace,
     EMAIL_DOMAINS: "mail.example.com,alt.example.com",
     ...overrides,
@@ -18,37 +18,33 @@ describe("loadConfig", () => {
     expect(cfg.domains).toEqual(["mail.example.com", "alt.example.com"]);
     expect(cfg.defaultDomain).toBe("mail.example.com");
     expect(cfg.inboxTtlSeconds).toBe(3600);
-    expect(cfg.maxNameLength).toBe(32);
+    expect(cfg.maxBodyChars).toBe(200_000);
   });
 
   it("honours numeric overrides", () => {
     const cfg = loadConfig(
       baseEnv({
         INBOX_TTL_SECONDS: "7200",
-        MAX_NAME_LENGTH: "16",
+        MAX_BODY_CHARS: "1000",
       }),
     );
     expect(cfg.inboxTtlSeconds).toBe(7200);
-    expect(cfg.maxNameLength).toBe(16);
+    expect(cfg.maxBodyChars).toBe(1000);
   });
 
-  it("handles empty domains", () => {
-    const cfg = loadConfig(baseEnv({ EMAIL_DOMAINS: "" }));
-    expect(cfg.domains).toEqual([]);
-    expect(cfg.defaultDomain).toBe("");
+  it("throws when domains empty", () => {
+    expect(() => loadConfig(baseEnv({ EMAIL_DOMAINS: "" }))).toThrow(AppError);
   });
 });
 
 describe("assertBindings", () => {
-  it("passes when DB KV R2 present", () => {
-    expect(assertBindings(baseEnv())).toEqual({ ok: true });
+  it("passes when DB and KV present", () => {
+    expect(() => assertBindings(baseEnv())).not.toThrow();
   });
 
-  it("reports missing bindings", () => {
-    const result = assertBindings(baseEnv({ DB: undefined as unknown as D1Database }));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.missing).toContain("DB");
-    }
+  it("throws when DB missing", () => {
+    expect(() =>
+      assertBindings(baseEnv({ DB: undefined as unknown as D1Database })),
+    ).toThrow(AppError);
   });
 });

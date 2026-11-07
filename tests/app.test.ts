@@ -16,6 +16,21 @@ vi.mock("../src/repositories/inboxRepo", () => ({
   listMessagesForInbox: vi.fn(async () => []),
 }));
 
+function mockDb(): D1Database {
+  return {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => ({ ok: 1 }),
+        run: async () => ({ success: true }),
+        all: async () => ({ results: [] }),
+      }),
+      first: async () => ({ ok: 1 }),
+      run: async () => ({ success: true }),
+      all: async () => ({ results: [] }),
+    }),
+  } as unknown as D1Database;
+}
+
 function mockKv(): KVNamespace {
   const map = new Map<string, string>();
   return {
@@ -31,9 +46,8 @@ function mockKv(): KVNamespace {
 
 function mockEnv(overrides: Partial<Env> = {}): Env {
   return {
-    DB: {} as D1Database,
-    R2: {} as R2Bucket,
-    KV: mockKv(),
+    DB: mockDb(),
+        KV: mockKv(),
     EMAIL_DOMAINS: "example.com",
     ...overrides,
   };
@@ -50,12 +64,13 @@ describe("createApp", () => {
     expect(res.headers.get("X-Request-Id")).toBeTruthy();
   });
 
-  it("registers v1 health", async () => {
+  it("registers root health", async () => {
     const app = createApp();
-    const res = await app.request("/api/v1/health", {}, mockEnv());
+    const res = await app.request("/health", {}, mockEnv());
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { request_id: string };
-    expect(body.request_id).toBeTruthy();
+    const body = (await res.json()) as { service: string; ready: boolean };
+    expect(body.service).toBe("temp-mail-api");
+    expect(body.ready).toBe(true);
   });
 
   it("returns structured 404", async () => {

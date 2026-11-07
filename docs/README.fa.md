@@ -1,32 +1,20 @@
 # TempMail-CFW — راهنمای فارسی
 
-سرویس ایمیل موقت سبک روی **Cloudflare Workers** با API و پنل مدیریت.
+ایمیل موقت روی Cloudflare Workers با ذخیرهٔ محتوای نرمال‌شده در **D1**.
 
 ## قابلیت‌ها
+- ساخت اینباکس تصادفی/سفارشی
+- دریافت ایمیل از Email Routing
+- API قدیمی و `/api/v1`
+- فقط **فرادادهٔ پیوست** (دانلود فایل پشتیبانی نمی‌شود)
+- پنل ادمین
+- بدون R2 و بدون ارسال ایمیل خروجی
 
-- ساخت اینباکس تصادفی یا سفارشی
-- دریافت ایمیل واقعی از طریق Email Routing
-- ذخیره پیوست در R2 (دانلود با احراز هویت)
-- API قدیمی (سازگار) و `/api/v1`
-- پنل ادمین با تم روشن/تاریک
-- استخراج خودکار کد OTP از موضوع/متن
-- Webhook اختیاری هنگام دریافت پیام
-- پاک‌سازی زمان‌بندی‌شده اینباکس‌های منقضی
+## راه‌اندازی
+1. D1 و KV بسازید و در `wrangler.toml` قرار دهید
+2. `EMAIL_DOMAINS` را تنظیم کنید
+3. `wrangler secret put PANEL_PASSWORD`
+4. `wrangler d1 migrations apply`
+5. Email Routing را به Worker وصل کنید
 
-## راه‌اندازی خلاصه
-
-1. D1 و R2 و KV بسازید و IDها را در `wrangler.toml` بگذارید.
-2. `EMAIL_DOMAINS` را تنظیم کنید.
-3. Secret: `wrangler secret put PANEL_PASSWORD`
-4. Migration: `wrangler d1 migrations apply tempmail-cfw`
-5. دامنه را در Email Routing به Worker وصل کنید.
-6. `npm install && npm run deploy`
-7. پنل: `cd web && npm install && npm run build` سپس بخش `[assets]` در `wrangler.toml` را فعال کنید.
-
-## مستندات بیشتر
-
-- معماری: `docs/ARCHITECTURE.md`
-- API: `docs/API.md` و `docs/openapi.yaml`
-- امنیت: `docs/SECURITY.md`
-- نگهداری داده: `docs/DATA-RETENTION.md`
-- وب: `docs/WEB.md`
+جزئیات: `docs/ARCHITECTURE.md`

@@ -21,7 +21,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --no-fund --no-audit
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps --no-fund --no-audit
 
       - name: Typecheck
         run: npm run typecheck
@@ -31,4 +31,16 @@ jobs:
 
       - name: Format check
         run: npm run format:check
-        continue-on-error: true
+
+      - name: Install web dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: web
+
+      - name: Web typecheck
+        run: npm run typecheck
+        working-directory: web
+
+      - name: Web build
+        run: npm run build
+        working-directory: web
+        continue-on-error: false

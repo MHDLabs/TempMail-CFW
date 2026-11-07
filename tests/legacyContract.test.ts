@@ -21,6 +21,21 @@ vi.mock("../src/services/cleanupService", () => ({
   runCleanup: vi.fn(async () => ({ inboxesDeleted: 0, sessionsDeleted: 0 })),
 }));
 
+function mockDb(): D1Database {
+  return {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => ({ ok: 1 }),
+        run: async () => ({ success: true }),
+        all: async () => ({ results: [] }),
+      }),
+      first: async () => ({ ok: 1 }),
+      run: async () => ({ success: true }),
+      all: async () => ({ results: [] }),
+    }),
+  } as unknown as D1Database;
+}
+
 function mockKv(): KVNamespace {
   const map = new Map<string, string>();
   return {
@@ -36,9 +51,8 @@ function mockKv(): KVNamespace {
 
 function mockEnv(): Env {
   return {
-    DB: {} as D1Database,
-    R2: {} as R2Bucket,
-    KV: mockKv(),
+    DB: mockDb(),
+        KV: mockKv(),
     EMAIL_DOMAINS: "example.com",
   };
 }

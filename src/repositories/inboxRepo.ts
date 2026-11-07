@@ -114,14 +114,17 @@ export async function listMessagesForInbox(
     subject: string | null;
     date: string | null;
     text_body: string | null;
-    html_r2_key: string | null;
+    html_body: string | null;
+    otp_code: string | null;
+    otp_kind: string | null;
+    otp_source: string | null;
     created_at: string;
   }>
 > {
   const db = getDb(env);
   const result = await db
     .prepare(
-      `SELECT id, from_addr, to_addr, subject, date, text_body, html_r2_key, created_at
+      `SELECT id, from_addr, to_addr, subject, date, text_body, html_body, otp_code, otp_kind, otp_source, created_at
        FROM messages WHERE inbox_id = ? ORDER BY created_at DESC LIMIT 100`,
     )
     .bind(inboxId)
@@ -132,7 +135,10 @@ export async function listMessagesForInbox(
       subject: string | null;
       date: string | null;
       text_body: string | null;
-      html_r2_key: string | null;
+      html_body: string | null;
+      otp_code: string | null;
+      otp_kind: string | null;
+      otp_source: string | null;
       created_at: string;
     }>();
   return result.results ?? [];

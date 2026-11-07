@@ -12,7 +12,6 @@ import { constantTimeCompare, generateRandomName, generateToken, hashToken } fro
 import { Errors } from "../utils/errors";
 import { purgeInbox } from "./cleanupService";
 import { isValidLocalPart } from "../utils/validation";
-import { extractOtp } from "./otpExtractService";
 
 function isExpired(expiresAtIso: string): boolean {
   return Date.parse(expiresAtIso) <= Date.now();
@@ -153,25 +152,21 @@ export async function getInboxByName(
   const rows = await listMessagesForInbox(env, row.id);
   const messages: LegacyMessage[] = [];
   for (const m of rows) {
-    let html = "";
-    if (m.html_r2_key && env.R2) {
-      try {
-        const obj = await env.R2.get(m.html_r2_key);
-        if (obj) html = await obj.text();
-      } catch {
-        html = "";
-      }
-    }
-    const otp = extractOtp({ subject: m.subject, text: m.text_body });
-    messages.push({
+        messages.push({
       id: m.id,
       from: m.from_addr ?? "",
       to: m.to_addr ?? row.address,
       subject: m.subject ?? "",
       date: m.date ?? m.created_at,
       text: m.text_body ?? "",
-      html,
-      otp: otp ? { code: otp.code, kind: otp.kind, source: otp.source } : null,
+      html: m.html_body ?? "",
+      otp: m.otp_code
+        ? {
+            code: m.otp_code,
+            kind: m.otp_kind ?? "otp",
+            source: m.otp_source ?? "text",
+          }
+        : null,
     });
   }
 

@@ -16,6 +16,7 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [domain, setDomain] = useState("");
   const [lastToken, setLastToken] = useState<{ email: string; token: string } | null>(null);
 
   const refresh = useCallback(async () => {
@@ -38,9 +39,7 @@ export function DashboardPage() {
     setError(null);
     try {
       const name = customName.trim() || undefined;
-      const created = await createInbox(name);
-      saveInboxToken(created.email, created.token);
-      saveInboxToken(created.id, created.token);
+      const created = await createInbox(name, domain || undefined);
       setLastToken({ email: created.email, token: created.token });
       setCustomName("");
       await refresh();

@@ -12,16 +12,36 @@ export type WebhookPayload = {
   received_at: string;
 };
 
+function isSafeWebhookUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return false;
+    if (host.endsWith(".local")) return false;
+    // Basic private-range checks
+    if (/^(10\.|192\.168\.|169\.254\.)/.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Optional outbound webhook. Configure WEBHOOK_URL (and optionally WEBHOOK_SECRET).
- * Failures are logged and never fail email ingestion.
+ * Optional outbound webhook with bounded timeout.
+ * Failures never fail email ingestion.
  */
 export async function dispatchMessageWebhook(
   env: Env,
   payload: WebhookPayload,
 ): Promise<void> {
-  const url = (env as Env & { WEBHOOK_URL?: string }).WEBHOOK_URL;
+  const url = env.WEBHOOK_URL;
   if (!url) return;
+  if (!isSafeWebhookUrl(url)) {
+    log("warn", "webhook url rejected");
+    return;
+  }
 
   const body = JSON.stringify(payload);
   const headers: Record<string, string> = {
@@ -29,7 +49,7 @@ export async function dispatchMessageWebhook(
     "User-Agent": "TempMail-CFW/0.1",
   };
 
-  const secret = (env as Env & { WEBHOOK_SECRET?: string }).WEBHOOK_SECRET;
+  const secret = env.WEBHOOK_SECRET;
   if (secret) {
     const key = await crypto.subtle.importKey(
       "raw",
@@ -43,8 +63,15 @@ export async function dispatchMessageWebhook(
     headers["X-TempMail-Signature"] = `sha256=${hex}`;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3_000);
   try {
-    const res = await fetch(url, { method: "POST", headers, body });
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body,
+      signal: controller.signal,
+    });
     if (!res.ok) {
       log("warn", "webhook non-2xx", { status: res.status });
     }
@@ -52,5 +79,7 @@ export async function dispatchMessageWebhook(
     log("warn", "webhook dispatch failed", {
       error: err instanceof Error ? err.message : "unknown",
     });
+  } finally {
+    clearTimeout(timer);
   }
 }

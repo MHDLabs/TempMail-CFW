@@ -1,27 +1,12 @@
-const KEY = "tm-inbox-tokens";
-
-type MapJson = Record<string, string>;
-
-function read(): MapJson {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || "{}") as MapJson;
-  } catch {
-    return {};
-  }
+/** Intentionally empty — panel does not persist inbox bearer tokens. */
+export function saveInboxToken(_addressOrId: string, _token: string): void {
+  /* no-op: tokens are shown once and not stored */
 }
 
-export function saveInboxToken(addressOrId: string, token: string) {
-  const m = read();
-  m[addressOrId] = token;
-  localStorage.setItem(KEY, JSON.stringify(m));
+export function getInboxToken(_addressOrId: string): string | null {
+  return null;
 }
 
-export function getInboxToken(addressOrId: string): string | null {
-  return read()[addressOrId] ?? null;
-}
-
-export function removeInboxToken(addressOrId: string) {
-  const m = read();
-  delete m[addressOrId];
-  localStorage.setItem(KEY, JSON.stringify(m));
+export function removeInboxToken(_addressOrId: string): void {
+  /* no-op */
 }

@@ -1,35 +1,35 @@
 import type { AppConfig, Env } from "./types/env";
+import { Errors } from "./utils/errors";
 
 const DEFAULTS = {
   inboxTtlSeconds: 3600,
-  sessionTtlSeconds: 43200,
+  sessionTtlSeconds: 43_200,
   maxMessagesPerInbox: 50,
-  maxMessageSizeBytes: 1_048_576,
-  maxAttachmentSizeBytes: 10_485_760,
+  maxMessageSizeBytes: 1_048_576, // 1 MiB total inbound message
+  maxBodyChars: 200_000,
   maxNameLength: 32,
 } as const;
 
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
-  const n = Number.parseInt(value, 10);
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return n;
 }
 
-/**
- * Validate and normalize Worker env into a typed AppConfig.
- * Throws if required structural bindings are missing at runtime use-sites;
- * domain list must be non-empty for inbox operations.
- */
 export function loadConfig(env: Env): AppConfig {
   const domains = (env.EMAIL_DOMAINS ?? "")
     .split(",")
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
 
+  if (domains.length === 0) {
+    throw Errors.serviceUnavailable("EMAIL_DOMAINS is not configured");
+  }
+
   return {
     domains,
-    defaultDomain: domains[0] ?? "",
+    defaultDomain: domains[0]!,
     inboxTtlSeconds: parsePositiveInt(env.INBOX_TTL_SECONDS, DEFAULTS.inboxTtlSeconds),
     sessionTtlSeconds: parsePositiveInt(env.SESSION_TTL_SECONDS, DEFAULTS.sessionTtlSeconds),
     maxMessagesPerInbox: parsePositiveInt(
@@ -40,22 +40,17 @@ export function loadConfig(env: Env): AppConfig {
       env.MAX_MESSAGE_SIZE_BYTES,
       DEFAULTS.maxMessageSizeBytes,
     ),
-    maxAttachmentSizeBytes: parsePositiveInt(
-      env.MAX_ATTACHMENT_SIZE_BYTES,
-      DEFAULTS.maxAttachmentSizeBytes,
-    ),
+    maxBodyChars: parsePositiveInt(env.MAX_BODY_CHARS, DEFAULTS.maxBodyChars),
     maxNameLength: parsePositiveInt(env.MAX_NAME_LENGTH, DEFAULTS.maxNameLength),
     panelPassword: env.PANEL_PASSWORD?.length ? env.PANEL_PASSWORD : null,
-    sessionSecret: env.SESSION_SECRET?.length ? env.SESSION_SECRET : null,
   };
 }
 
-export function assertBindings(env: Env): { ok: true } | { ok: false; missing: string[] } {
+export function assertBindings(env: Env): void {
   const missing: string[] = [];
   if (!env.DB) missing.push("DB");
   if (!env.KV) missing.push("KV");
-  // R2 is required for attachments but may be optional in earliest scaffold tests
-  if (!env.R2) missing.push("R2");
-  if (missing.length) return { ok: false, missing };
-  return { ok: true };
+  if (missing.length) {
+    throw Errors.serviceUnavailable(`Missing bindings: ${missing.join(", ")}`);
+  }
 }

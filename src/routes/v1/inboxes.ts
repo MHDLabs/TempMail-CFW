@@ -8,19 +8,62 @@ import {
   extractBearer,
   getInboxById,
   getInboxByName,
+  verifyInboxAccess,
 } from "../../services/inboxService";
-import { Errors } from "../../utils/errors";
+import { findInboxById, findInboxByLocalPart } from "../../repositories/inboxRepo";
+import { listMessagesPage } from "../../repositories/messageRepo";
 import { assertRateLimit, clientIp } from "../../services/rateLimitService";
+import { Errors } from "../../utils/errors";
+import { ensureDomain } from "../../repositories/inboxRepo";
 
 export const v1InboxRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
+
+function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+function encodeCursor(c: { created_at: string; id: string }): string {
+  const json = JSON.stringify(c);
+  return btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function decodeCursor(raw: string | undefined): { created_at: string; id: string } | null {
+  if (!raw) return null;
+  try {
+    const padded = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = padded + "=".repeat((4 - (padded.length % 4)) % 4);
+    const json = atob(pad);
+    const obj = JSON.parse(json) as { created_at?: string; id?: string };
+    if (typeof obj.created_at === "string" && typeof obj.id === "string") {
+      return { created_at: obj.created_at, id: obj.id };
+    }
+  } catch {
+    /* invalid */
+  }
+  throw Errors.invalidRequest("Malformed cursor");
+}
+
+function parseJsonBody<T extends Record<string, unknown>>(
+  raw: unknown,
+): T {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw Errors.invalidRequest("JSON object body required");
+  }
+  return raw as T;
+}
 
 v1InboxRoutes.post("/inboxes", async (c) => {
   await assertRateLimit(c.env, "create_inbox", clientIp(c.req.raw));
   const config = c.get("config");
   let body: { name?: string; domain?: string } = {};
   try {
-    body = (await c.req.json()) as { name?: string; domain?: string };
-  } catch {
+    const raw = await c.req.json();
+    if (raw !== null && raw !== undefined) {
+      body = parseJsonBody(raw);
+    }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err) throw err;
+    // empty body is allowed for random name
     body = {};
   }
 
@@ -42,6 +85,7 @@ v1InboxRoutes.post("/inboxes", async (c) => {
 });
 
 v1InboxRoutes.get("/inboxes/check", async (c) => {
+  await assertRateLimit(c.env, "read_inbox", clientIp(c.req.raw));
   const config = c.get("config");
   const name = c.req.query("name") ?? "";
   const domain = c.req.query("domain") ?? undefined;
@@ -55,13 +99,12 @@ v1InboxRoutes.get("/inboxes/check", async (c) => {
 });
 
 v1InboxRoutes.get("/inboxes/:id", async (c) => {
+  await assertRateLimit(c.env, "read_inbox", clientIp(c.req.raw));
   const id = c.req.param("id");
   const token = extractBearer(c.req.header("Authorization"));
-  // Support both UUID id and legacy local-part lookup for convenience
   const config = c.get("config");
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  if (isUuid) {
+  if (isUuid(id)) {
     const inbox = await getInboxById(c.env, id, token);
     return c.json({ success: true, inbox });
   }
@@ -71,35 +114,51 @@ v1InboxRoutes.get("/inboxes/:id", async (c) => {
 });
 
 v1InboxRoutes.get("/inboxes/:id/messages", async (c) => {
+  await assertRateLimit(c.env, "read_inbox", clientIp(c.req.raw));
   const id = c.req.param("id");
   const token = extractBearer(c.req.header("Authorization"));
+  if (!token) throw Errors.unauthorized();
+
   const config = c.get("config");
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const limitRaw = Number.parseInt(c.req.query("limit") ?? "50", 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 50;
+  const cursor = decodeCursor(c.req.query("cursor") ?? undefined);
 
-  // For Phase 4, resolve via local-part on default domain when not UUID
-  if (!isUuid) {
-    const { inbox, messages } = await getInboxByName(c.env, config, id, token);
-    return c.json({
-      success: true,
-      inbox_id: inbox.id,
-      email: inbox.email,
-      messages,
-      expires_at: inbox.expires_at,
-      next_cursor: null,
-    });
+  let inboxRow;
+  if (isUuid(id)) {
+    inboxRow = await findInboxById(c.env, id);
+  } else {
+    const domain = await ensureDomain(c.env, config.defaultDomain);
+    inboxRow = await findInboxByLocalPart(c.env, domain.id, id.toLowerCase());
   }
+  if (!inboxRow) throw Errors.notFound("Inbox not found");
+  await verifyInboxAccess(c.env, inboxRow, token);
 
-  const inbox = await getInboxById(c.env, id, token);
-  // Messages by UUID path — reuse name path via address local part
-  const localPart = inbox.email.split("@")[0] ?? "";
-  const { messages } = await getInboxByName(c.env, config, localPart, token);
+  const { rows, nextCursor } = await listMessagesPage(c.env, inboxRow.id, {
+    limit,
+    cursor,
+  });
+
+  const messages = rows.map((m) => ({
+    id: m.id,
+    from: m.from_addr ?? "",
+    to: m.to_addr ?? inboxRow.address,
+    subject: m.subject ?? "",
+    date: m.date ?? m.created_at,
+    text: m.text_body ?? "",
+    html: m.html_body ?? "",
+    otp: m.otp_code
+      ? { code: m.otp_code, kind: m.otp_kind, source: m.otp_source }
+      : null,
+  }));
+
   return c.json({
     success: true,
-    inbox_id: inbox.id,
-    email: inbox.email,
+    inbox_id: inboxRow.id,
+    email: inboxRow.address,
     messages,
-    expires_at: inbox.expires_at,
-    next_cursor: null,
+    expires_at: inboxRow.expires_at,
+    next_cursor: nextCursor ? encodeCursor(nextCursor) : null,
   });
 });
 
@@ -107,9 +166,8 @@ v1InboxRoutes.delete("/inboxes/:id", async (c) => {
   const id = c.req.param("id");
   const token = extractBearer(c.req.header("Authorization"));
   const config = c.get("config");
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  if (isUuid) {
+  if (isUuid(id)) {
     await deleteInboxByIdService(c.env, id, token);
   } else {
     await deleteInboxByName(c.env, config, id, token);

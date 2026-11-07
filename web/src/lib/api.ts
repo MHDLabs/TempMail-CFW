@@ -55,7 +55,10 @@ export async function listAdminInboxes() {
   }>(await fetch("/api/v1/admin/inboxes", { credentials: "include" }));
 }
 
-export async function createInbox(name?: string) {
+export async function createInbox(name?: string, domain?: string) {
+  const body: Record<string, string> = {};
+  if (name) body.name = name;
+  if (domain) body.domain = domain;
   return parseJson<{
     success: true;
     id: string;
@@ -66,7 +69,7 @@ export async function createInbox(name?: string) {
     await fetch("/api/v1/inboxes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(name ? { name } : {}),
+      body: JSON.stringify(body),
     }),
   );
 }
