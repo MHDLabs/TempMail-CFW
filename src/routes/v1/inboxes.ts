@@ -16,7 +16,8 @@ import { Errors } from "../../utils/errors";
 
 export const v1InboxRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-v1InboxRoutes.use("*", adminAuthMiddleware);
+v1InboxRoutes.use("/inboxes", adminAuthMiddleware);
+v1InboxRoutes.use("/inboxes/*", adminAuthMiddleware);
 
 function isUuid(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);

@@ -8,7 +8,8 @@ import { Errors } from "../../utils/errors";
 
 export const v1MessageRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-v1MessageRoutes.use("*", adminAuthMiddleware);
+v1MessageRoutes.use("/messages", adminAuthMiddleware);
+v1MessageRoutes.use("/messages/*", adminAuthMiddleware);
 
 v1MessageRoutes.get("/messages/:id", async (c) => {
   await assertRateLimit(c.env, "read_inbox", clientIp(c.req.raw));

@@ -23,9 +23,9 @@ export function createApp() {
   app.route("/", healthRoutes);
   app.route("/", authRoutes);
   app.route("/", legacyRoutes);
+  app.route("/api/v1", v1AdminRoutes);
   app.route("/api/v1", v1InboxRoutes);
   app.route("/api/v1", v1MessageRoutes);
-  app.route("/api/v1", v1AdminRoutes);
 
   app.notFound((c) =>
     c.json(
